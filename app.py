@@ -109,14 +109,14 @@ st.markdown("""
     }
 
     /* -------------------------------------------------------------------------
-       STRICT SINGLE-LINE (NO-WRAP) KPI CARDS
+       STRICT SINGLE-LINE (NO-WRAP) KPI CARDS - 6 CORE METRICS
        ------------------------------------------------------------------------- */
     .kpi-card {
         background-color: #ffffff;
         border: 1px solid #e2e8f0;
         border-top: 4px solid #0284c7;
         border-radius: 8px;
-        padding: 8px 2px;
+        padding: 10px 4px;
         text-align: center;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 10px;
@@ -124,11 +124,11 @@ st.markdown("""
 
     .kpi-title {
         color: #64748b;
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.03em;
-        margin-bottom: 2px;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -136,7 +136,7 @@ st.markdown("""
 
     .kpi-value {
         color: #0f172a;
-        font-size: 1.25rem;
+        font-size: 1.45rem;
         font-weight: 800;
         font-family: 'Inter', sans-serif;
         white-space: nowrap !important;
@@ -262,7 +262,7 @@ if uploaded_file is not None:
     if has_target:
         st.subheader(f"🎯 Performance Evaluation: `{selected_model_name}`")
         
-        # Base Metrics
+        # 6 Mandatory Rubric Metrics
         acc = accuracy_score(y_test, y_pred)
         auc = roc_auc_score(y_test, y_proba)
         prec = precision_score(y_test, y_pred, zero_division=0)
@@ -272,15 +272,17 @@ if uploaded_file is not None:
 
         cm = confusion_matrix(y_test, y_pred)
         tn, fp, fn, tp = cm.ravel()
+        total_samples = len(y_test)
 
         specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
         fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
         fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0
         total_churners_caught = tp
         total_actual_churners = tp + fn
+        pct_churners_caught = (tp / total_actual_churners * 100) if total_actual_churners > 0 else 0.0
 
-        # 8 Single-Line Metric Cards
-        c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
+        # Top Grid: Exactly 6 Core Metric KPI Cards
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         
         c1.markdown(f'<div class="kpi-card"><div class="kpi-title">Accuracy</div><div class="kpi-value">{acc:.4f}</div></div>', unsafe_allow_html=True)
         c2.markdown(f'<div class="kpi-card"><div class="kpi-title">AUC Score</div><div class="kpi-value">{auc:.4f}</div></div>', unsafe_allow_html=True)
@@ -288,22 +290,27 @@ if uploaded_file is not None:
         c4.markdown(f'<div class="kpi-card"><div class="kpi-title">Recall</div><div class="kpi-value">{rec:.4f}</div></div>', unsafe_allow_html=True)
         c5.markdown(f'<div class="kpi-card"><div class="kpi-title">F1 Score</div><div class="kpi-value">{f1:.4f}</div></div>', unsafe_allow_html=True)
         c6.markdown(f'<div class="kpi-card"><div class="kpi-title">MCC Score</div><div class="kpi-value">{mcc:.4f}</div></div>', unsafe_allow_html=True)
-        c7.markdown(f'<div class="kpi-card"><div class="kpi-title">Specificity</div><div class="kpi-value">{specificity:.4f}</div></div>', unsafe_allow_html=True)
-        c8.markdown(f'<div class="kpi-card"><div class="kpi-title">FPR</div><div class="kpi-value">{fpr:.4f}</div></div>', unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
         col_left, col_right = st.columns([1, 1])
 
         with col_left:
-            st.markdown("##### 🔲 Confusion Matrix")
+            st.markdown("##### 🔲 Confusion Matrix (Counts & Total %)")
+            
+            # Formatted Annotations showing Count + Percentage of Total Dataset
+            annot_matrix = np.array([
+                [f"{tn}\n({tn/total_samples:.1%})", f"{fp}\n({fp/total_samples:.1%})"],
+                [f"{fn}\n({fn/total_samples:.1%})", f"{tp}\n({tp/total_samples:.1%})"]
+            ])
+
             fig, ax = plt.subplots(figsize=(4.5, 3.2))
             fig.patch.set_facecolor('#f8f9fa')
             ax.set_facecolor('#f8f9fa')
             
             sns.heatmap(
-                cm, annot=True, fmt="d", cmap="YlGnBu", cbar=False, ax=ax,
-                annot_kws={"size": 12, "weight": "bold"},
+                cm, annot=annot_matrix, fmt="", cmap="YlGnBu", cbar=False, ax=ax,
+                annot_kws={"size": 11, "weight": "bold"},
                 xticklabels=["Retained (0)", "Churned (1)"],
                 yticklabels=["Retained (0)", "Churned (1)"]
             )
@@ -313,40 +320,47 @@ if uploaded_file is not None:
             st.pyplot(fig)
 
         with col_right:
-            st.markdown("##### 📋 Operational & Error Summary")
+            st.markdown("##### 📋 Class Breakdown (% Rates)")
             
-            st.info(f"🎯 **Total Churners Detected:** **{total_churners_caught}** out of **{total_actual_churners}** actual churners")
-            st.warning(f"⚠️ **False Negative Rate (FNR):** **{fnr:.4f}** ({fnr*100:.2f}% missed churners)")
+            st.info(f"🎯 **Churn Detection Rate:** **{pct_churners_caught:.2f}%** ({total_churners_caught} / {total_actual_churners} actual churners caught)")
+            st.warning(f"⚠️ **Missed Churners (FNR):** **{fnr*100:.2f}%** | **False Alarm Rate (FPR):** **{fpr*100:.2f}%**")
 
+            # Clean percentage breakdown table
             report_dict = classification_report(
                 y_test, y_pred, 
                 target_names=["Retained (0)", "Churned (1)"], 
                 output_dict=True
             )
-            # Filter out macro avg, weighted avg, and accuracy rows
-            report_df = pd.DataFrame(report_dict).transpose().round(4)
-            filtered_report_df = report_df.loc[["Retained (0)", "Churned (1)"]]
-            st.dataframe(filtered_report_df, use_container_width=True)
+            
+            pct_table_data = {
+                "Class Name": ["Retained (0)", "Churned (1)"],
+                "Precision Rate (%)": [f"{report_dict['Retained (0)']['precision']*100:.2f}%", f"{report_dict['Churned (1)']['precision']*100:.2f}%"],
+                "Recall Rate (%)": [f"{report_dict['Retained (0)']['recall']*100:.2f}%", f"{report_dict['Churned (1)']['recall']*100:.2f}%"],
+                "F1 Score (%)": [f"{report_dict['Retained (0)']['f1-score']*100:.2f}%", f"{report_dict['Churned (1)']['f1-score']*100:.2f}%"],
+                "Sample Count": [int(report_dict['Retained (0)']['support']), int(report_dict['Churned (1)']['support'])]
+            }
+            pct_df = pd.DataFrame(pct_table_data)
+            st.dataframe(pct_df, use_container_width=True, hide_index=True)
 
         st.markdown("---")
         
         # Model Comparison Bar Chart Section
-        st.subheader("📊 Classifier Comparison across Test Dataset")
+        st.subheader("📊 Classifier Comparison across Test Dataset (%)")
         
         comparison_records = []
         for name, m_obj in models.items():
             p_pred, p_proba = run_model_inference(name, m_obj, X_test, scaler)
             comparison_records.append({
                 "Model": name,
-                "Accuracy": accuracy_score(y_test, p_pred),
-                "Precision": precision_score(y_test, p_pred, zero_division=0),
-                "Recall": recall_score(y_test, p_pred, zero_division=0),
-                "F1 Score": f1_score(y_test, p_pred, zero_division=0),
-                "AUC": roc_auc_score(y_test, p_proba)
+                "Accuracy (%)": accuracy_score(y_test, p_pred) * 100,
+                "Precision (%)": precision_score(y_test, p_pred, zero_division=0) * 100,
+                "Recall (%)": recall_score(y_test, p_pred, zero_division=0) * 100,
+                "F1 Score (%)": f1_score(y_test, p_pred, zero_division=0) * 100,
+                "AUC (%)": roc_auc_score(y_test, p_proba) * 100
             })
             
         comp_df = pd.DataFrame(comparison_records)
-        comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Score")
+        comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Percentage (%)")
 
         fig_comp, ax_comp = plt.subplots(figsize=(10, 4))
         fig_comp.patch.set_facecolor('#f8f9fa')
@@ -355,15 +369,15 @@ if uploaded_file is not None:
         sns.barplot(
             data=comp_melted, 
             x="Model", 
-            y="Score", 
+            y="Percentage (%)", 
             hue="Metric", 
             palette="Blues_r",
             ax=ax_comp
         )
 
-        plt.ylim(0, 1.05)
+        plt.ylim(0, 105)
         plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=8)
-        plt.ylabel("Score", fontsize=10, fontweight='bold', labelpad=8)
+        plt.ylabel("Score Percentage (%)", fontsize=10, fontweight='bold', labelpad=8)
         plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0.)
         plt.xticks(rotation=15, fontweight='bold')
         plt.grid(axis='y', linestyle='--', alpha=0.5)
@@ -376,7 +390,7 @@ if uploaded_file is not None:
     else:
         st.info("ℹ️ Target column `'Churn'` not found. Displaying batch predictions:")
         output_df = test_df.copy()
-        output_df['Predicted_Probability'] = np.round(y_proba, 4)
+        output_df['Predicted_Probability_%'] = np.round(y_proba * 100, 2)
         output_df['Predicted_Churn'] = y_pred
 
         st.dataframe(output_df, use_container_width=True)
