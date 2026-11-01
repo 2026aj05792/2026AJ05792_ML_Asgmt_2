@@ -31,32 +31,59 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for executive look and feel
 st.markdown("""
     <style>
-    /* Main container styling */
+    /* Main layout styling */
     .main {
         background-color: #f8f9fa;
     }
     
-    /* Title and Header styling */
+    /* Headers - Controlled font size so title fits on one line */
     h1 {
         color: #1e293b;
         font-family: 'Inter', sans-serif;
+        font-size: 2.1rem !important;
         font-weight: 700;
         margin-bottom: 0.2rem;
+        white-space: nowrap;
     }
     
-    /* Sidebar customization */
+    /* Sidebar container */
     [data-testid="stSidebar"] {
-        background-color: #0f172a;
-        color: #ffffff;
+        background-color: #0f172a !important;
     }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] label {
+    
+    /* Sidebar text, headers, and labels */
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div {
         color: #f8fafc !important;
     }
+
+    /* Fix File Uploader visibility & contrast */
+    [data-testid="stFileUploader"] section {
+        background-color: #1e293b !important;
+        border: 1px dashed #475569 !important;
+        border-radius: 8px !important;
+    }
+
+    [data-testid="stFileUploader"] button {
+        background-color: #0284c7 !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+    }
+
+    [data-testid="stFileUploader"] button:hover {
+        background-color: #0369a1 !important;
+    }
     
-    /* Card metric containers */
+    /* Metric cards customization */
     div[data-testid="stMetricValue"] {
         font-size: 1.8rem !important;
         font-weight: 700 !important;
@@ -69,7 +96,7 @@ st.markdown("""
         color: #64748b !important;
     }
 
-    /* Dataframe styling */
+    /* Table visual fixes */
     .stDataFrame {
         border-radius: 8px;
         overflow: hidden;
@@ -111,26 +138,26 @@ with st.sidebar:
     st.markdown("---")
     
     st.subheader("1. Data Input")
-    uploaded_file = st.file_uploader("Upload Test Dataset (CSV)", type=["csv"], help="Upload test_data.csv containing customer features.")
+    uploaded_file = st.file_uploader(
+        "Upload Test Dataset (CSV)", 
+        type=["csv"], 
+        help="Upload test_data.csv containing customer features."
+    )
     
     st.subheader("2. Model Selection")
     selected_model_name = st.selectbox(
         "Choose Classifier",
         list(models.keys()),
-        index=4,  # Defaults to SVM
+        index=4,  # Defaults to Support Vector Machine
         help="Select any of the 5 trained ML classifiers to run evaluations."
     )
-    
-    st.markdown("---")
-    st.caption("🔒 Fixed Threshold: **0.45**")
-    st.caption("📌 Scaler & Encoders: Active")
 
 model = models[selected_model_name]
 
 # ------------------------------------------------------------------------------
-# 4. Main Interface Header
+# 4. Main Interface Header & Engine
 # ------------------------------------------------------------------------------
-st.title("⚡ Telco Customer Churn Intelligence Dashboard")
+st.title("⚡ Telco Churn Intelligence Dashboard")
 st.markdown("Evaluate trained classifiers on unseen test data or perform real-time batch customer churn predictions.")
 st.markdown("---")
 
@@ -179,7 +206,7 @@ if uploaded_file is not None:
     else:
         y_proba = model.predict(X_test_proc)
 
-    # Classification decision at fixed 0.45 threshold
+    # Classification decision thresholding
     y_pred = (y_proba >= OPTIMIZED_THRESHOLD).astype(int)
 
     # --------------------------------------------------------------------------
@@ -195,7 +222,7 @@ if uploaded_file is not None:
         f1 = f1_score(y_test, y_pred, zero_division=0)
         mcc = matthews_corrcoef(y_test, y_pred)
 
-        # 6 Styled Metric Cards
+        # 6 Metric Cards
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         col1.metric("Accuracy", f"{acc:.4f}")
         col2.metric("AUC Score", f"{auc:.4f}")
@@ -241,7 +268,7 @@ if uploaded_file is not None:
     # Scenario B: Target Column Missing -> Batch Prediction View
     # --------------------------------------------------------------------------
     else:
-        st.info("ℹ️ Target column `'Churn'` not found. Displaying batch prediction predictions:")
+        st.info("ℹ️ Target column `'Churn'` not found. Displaying batch predictions:")
         output_df = test_df.copy()
         output_df['Predicted_Probability'] = np.round(y_proba, 4)
         output_df['Predicted_Churn'] = y_pred
@@ -258,5 +285,5 @@ if uploaded_file is not None:
         )
 
 else:
-    # Landing Empty State
+    # Landing State
     st.info("👈 Upload your `test_data.csv` using the left control panel to begin model evaluation.")
