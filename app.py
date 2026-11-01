@@ -22,7 +22,7 @@ from sklearn.metrics import (
 )
 
 # ------------------------------------------------------------------------------
-# 1. Page Configuration & Custom CSS Styling
+# 1. Page Configuration & Custom KPI Cards Styling
 # ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Telco Churn Analytics",
@@ -33,12 +33,12 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    /* Main layout styling */
+    /* Main layout background */
     .main {
         background-color: #f8f9fa;
     }
     
-    /* Headers - Controlled font size so title fits on one line */
+    /* Title styling - Single line fit */
     h1 {
         color: #1e293b;
         font-family: 'Inter', sans-serif;
@@ -53,7 +53,7 @@ st.markdown("""
         background-color: #0f172a !important;
     }
     
-    /* Sidebar text, headers, and labels */
+    /* Sidebar labels & text */
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3, 
@@ -82,21 +82,38 @@ st.markdown("""
     [data-testid="stFileUploader"] button:hover {
         background-color: #0369a1 !important;
     }
-    
-    /* Metric cards customization */
-    div[data-testid="stMetricValue"] {
-        font-size: 1.8rem !important;
-        font-weight: 700 !important;
-        color: #0284c7 !important;
-    }
-    
-    div[data-testid="stMetricLabel"] {
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
-        color: #64748b !important;
+
+    /* -------------------------------------------------------------------------
+       CUSTOM HIGH-VISIBILITY METRIC KPI CARDS
+       ------------------------------------------------------------------------- */
+    .kpi-card {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-top: 4px solid #0284c7;
+        border-radius: 10px;
+        padding: 16px 8px;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        margin-bottom: 12px;
     }
 
-    /* Table visual fixes */
+    .kpi-title {
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 6px;
+    }
+
+    .kpi-value {
+        color: #0f172a;
+        font-size: 1.8rem;
+        font-weight: 800;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Table visual refinement */
     .stDataFrame {
         border-radius: 8px;
         overflow: hidden;
@@ -134,9 +151,6 @@ except Exception as e:
 # 3. Sidebar Controls
 # ------------------------------------------------------------------------------
 with st.sidebar:
-    st.title("⚙️ Control Panel")
-    st.markdown("---")
-    
     st.subheader("1. Data Input")
     uploaded_file = st.file_uploader(
         "Upload Test Dataset (CSV)", 
@@ -213,7 +227,7 @@ if uploaded_file is not None:
     # Scenario A: Target Column Present -> Evaluation View
     # --------------------------------------------------------------------------
     if has_target:
-        st.subheader(f"🎯 Performance Metrics: `{selected_model_name}`")
+        st.subheader(f"🎯 Performance Evaluation: `{selected_model_name}`")
         
         acc = accuracy_score(y_test, y_pred)
         auc = roc_auc_score(y_test, y_proba)
@@ -222,14 +236,50 @@ if uploaded_file is not None:
         f1 = f1_score(y_test, y_pred, zero_division=0)
         mcc = matthews_corrcoef(y_test, y_pred)
 
-        # 6 Metric Cards
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
-        col1.metric("Accuracy", f"{acc:.4f}")
-        col2.metric("AUC Score", f"{auc:.4f}")
-        col3.metric("Precision", f"{prec:.4f}")
-        col4.metric("Recall", f"{rec:.4f}")
-        col5.metric("F1 Score", f"{f1:.4f}")
-        col6.metric("MCC Score", f"{mcc:.4f}")
+        # High-Impact Custom KPI Cards Layout
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        
+        c1.markdown(f'''
+            <div class="kpi-card">
+                <div class="kpi-title">Accuracy</div>
+                <div class="kpi-value">{acc:.4f}</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        
+        c2.markdown(f'''
+            <div class="kpi-card">
+                <div class="kpi-title">AUC Score</div>
+                <div class="kpi-value">{auc:.4f}</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        
+        c3.markdown(f'''
+            <div class="kpi-card">
+                <div class="kpi-title">Precision</div>
+                <div class="kpi-value">{prec:.4f}</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        
+        c4.markdown(f'''
+            <div class="kpi-card">
+                <div class="kpi-title">Recall</div>
+                <div class="kpi-value">{rec:.4f}</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        
+        c5.markdown(f'''
+            <div class="kpi-card">
+                <div class="kpi-title">F1 Score</div>
+                <div class="kpi-value">{f1:.4f}</div>
+            </div>
+        ''', unsafe_allow_html=True)
+        
+        c6.markdown(f'''
+            <div class="kpi-card">
+                <div class="kpi-title">MCC Score</div>
+                <div class="kpi-value">{mcc:.4f}</div>
+            </div>
+        ''', unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -286,4 +336,4 @@ if uploaded_file is not None:
 
 else:
     # Landing State
-    st.info("👈 Upload your `test_data.csv` using the left control panel to begin model evaluation.")
+    st.info("👈 Upload your `test_data.csv` using the left sidebar to begin model evaluation.")
