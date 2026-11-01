@@ -22,7 +22,7 @@ from sklearn.metrics import (
 )
 
 # ------------------------------------------------------------------------------
-# 1. Page Configuration & Custom Styling (DARK UPLOAD CARD CONTRAST FIX)
+# 1. Page Configuration & Custom Styling
 # ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Telco Churn Analytics",
@@ -53,7 +53,7 @@ st.markdown("""
         background-color: #0f172a !important;
     }
     
-    /* General sidebar text, headers, and labels */
+    /* Sidebar text, headers, and labels */
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3, 
@@ -82,7 +82,7 @@ st.markdown("""
         background-color: #0369a1 !important;
     }
 
-    /* CRITICAL FIX: Make the uploaded file pill dark with high-contrast text & icons */
+    /* Make uploaded file pill dark with high-contrast text & icons */
     [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {
         color: #f8fafc !important;
     }
@@ -116,7 +116,7 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         border-top: 4px solid #0284c7;
         border-radius: 8px;
-        padding: 10px 4px;
+        padding: 8px 2px;
         text-align: center;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 10px;
@@ -124,11 +124,11 @@ st.markdown("""
 
     .kpi-title {
         color: #64748b;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-bottom: 4px;
+        letter-spacing: 0.03em;
+        margin-bottom: 2px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -136,7 +136,7 @@ st.markdown("""
 
     .kpi-value {
         color: #0f172a;
-        font-size: 1.45rem;
+        font-size: 1.25rem;
         font-weight: 800;
         font-family: 'Inter', sans-serif;
         white-space: nowrap !important;
@@ -144,7 +144,6 @@ st.markdown("""
         letter-spacing: -0.02em;
     }
 
-    /* Dataframe visual styling */
     .stDataFrame {
         border-radius: 8px;
         overflow: hidden;
@@ -178,6 +177,36 @@ except Exception as e:
     st.error(f"⚠️ Error loading model artifacts from `{MODEL_DIR}`: {e}")
     st.stop()
 
+# Helper function to process features & run model inference
+def run_model_inference(m_name, m_obj, df_features, scaler_obj):
+    if hasattr(scaler_obj, "feature_names_in_"):
+        expected_features = list(scaler_obj.feature_names_in_)
+        missing_cols = set(expected_features) - set(df_features.columns)
+        for c in missing_cols:
+            df_features[c] = 0
+        df_proc = df_features[expected_features]
+    else:
+        df_proc = df_features.copy()
+
+    if m_name in ["Logistic Regression", "KNN", "Support Vector Machine"]:
+        try:
+            X_proc = scaler_obj.transform(df_proc)
+        except ValueError:
+            X_proc = scaler_obj.transform(df_proc.values)
+    else:
+        X_proc = df_proc.copy()
+
+    if hasattr(m_obj, "predict_proba"):
+        probs = m_obj.predict_proba(X_proc)[:, 1]
+    elif hasattr(m_obj, "decision_function"):
+        d_scores = m_obj.decision_function(X_proc)
+        probs = 1 / (1 + np.exp(-d_scores))
+    else:
+        probs = m_obj.predict(X_proc)
+
+    preds = (probs >= OPTIMIZED_THRESHOLD).astype(int)
+    return preds, probs
+
 # ------------------------------------------------------------------------------
 # 3. Sidebar Controls
 # ------------------------------------------------------------------------------
@@ -210,7 +239,6 @@ if uploaded_file is not None:
     test_df = pd.read_csv(uploaded_file)
     test_df.columns = test_df.columns.str.strip()
     
-    # Identify target column 'Churn'
     target_col = None
     for col in test_df.columns:
         if col.lower() == 'churn':
@@ -225,34 +253,8 @@ if uploaded_file is not None:
     else:
         X_test = test_df.copy()
 
-    # Column alignment to match feature order expected by scaler/model
-    if hasattr(scaler, "feature_names_in_"):
-        expected_features = list(scaler.feature_names_in_)
-        missing_cols = set(expected_features) - set(X_test.columns)
-        for col in missing_cols:
-            X_test[col] = 0
-        X_test = X_test[expected_features]
-
-    # Preprocessing: Scale features for distance/linear models
-    if selected_model_name in ["Logistic Regression", "KNN", "Support Vector Machine"]:
-        try:
-            X_test_proc = scaler.transform(X_test)
-        except ValueError:
-            X_test_proc = scaler.transform(X_test.values)
-    else:
-        X_test_proc = X_test.copy()
-
-    # Synchronized Probability Inference Engine
-    if hasattr(model, "predict_proba"):
-        y_proba = model.predict_proba(X_test_proc)[:, 1]
-    elif hasattr(model, "decision_function"):
-        d_scores = model.decision_function(X_test_proc)
-        y_proba = 1 / (1 + np.exp(-d_scores))
-    else:
-        y_proba = model.predict(X_test_proc)
-
-    # Classification decision thresholding
-    y_pred = (y_proba >= OPTIMIZED_THRESHOLD).astype(int)
+    # Active selected model predictions
+    y_pred, y_proba = run_model_inference(selected_model_name, model, X_test, scaler)
 
     # --------------------------------------------------------------------------
     # Scenario A: Target Column Present -> Evaluation View
@@ -260,6 +262,7 @@ if uploaded_file is not None:
     if has_target:
         st.subheader(f"🎯 Performance Evaluation: `{selected_model_name}`")
         
+        # Base Metrics
         acc = accuracy_score(y_test, y_pred)
         auc = roc_auc_score(y_test, y_proba)
         prec = precision_score(y_test, y_pred, zero_division=0)
@@ -267,50 +270,26 @@ if uploaded_file is not None:
         f1 = f1_score(y_test, y_pred, zero_division=0)
         mcc = matthews_corrcoef(y_test, y_pred)
 
-        # 6 Single-Line Metric Cards
-        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        cm = confusion_matrix(y_test, y_pred)
+        tn, fp, fn, tp = cm.ravel()
+
+        specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
+        fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0
+        total_churners_caught = tp
+        total_actual_churners = tp + fn
+
+        # 8 Single-Line Metric Cards
+        c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(8)
         
-        c1.markdown(f'''
-            <div class="kpi-card">
-                <div class="kpi-title">Accuracy</div>
-                <div class="kpi-value">{acc:.4f}</div>
-            </div>
-        ''', unsafe_allow_html=True)
-        
-        c2.markdown(f'''
-            <div class="kpi-card">
-                <div class="kpi-title">AUC Score</div>
-                <div class="kpi-value">{auc:.4f}</div>
-            </div>
-        ''', unsafe_allow_html=True)
-        
-        c3.markdown(f'''
-            <div class="kpi-card">
-                <div class="kpi-title">Precision</div>
-                <div class="kpi-value">{prec:.4f}</div>
-            </div>
-        ''', unsafe_allow_html=True)
-        
-        c4.markdown(f'''
-            <div class="kpi-card">
-                <div class="kpi-title">Recall</div>
-                <div class="kpi-value">{rec:.4f}</div>
-            </div>
-        ''', unsafe_allow_html=True)
-        
-        c5.markdown(f'''
-            <div class="kpi-card">
-                <div class="kpi-title">F1 Score</div>
-                <div class="kpi-value">{f1:.4f}</div>
-            </div>
-        ''', unsafe_allow_html=True)
-        
-        c6.markdown(f'''
-            <div class="kpi-card">
-                <div class="kpi-title">MCC Score</div>
-                <div class="kpi-value">{mcc:.4f}</div>
-            </div>
-        ''', unsafe_allow_html=True)
+        c1.markdown(f'<div class="kpi-card"><div class="kpi-title">Accuracy</div><div class="kpi-value">{acc:.4f}</div></div>', unsafe_allow_html=True)
+        c2.markdown(f'<div class="kpi-card"><div class="kpi-title">AUC Score</div><div class="kpi-value">{auc:.4f}</div></div>', unsafe_allow_html=True)
+        c3.markdown(f'<div class="kpi-card"><div class="kpi-title">Precision</div><div class="kpi-value">{prec:.4f}</div></div>', unsafe_allow_html=True)
+        c4.markdown(f'<div class="kpi-card"><div class="kpi-title">Recall</div><div class="kpi-value">{rec:.4f}</div></div>', unsafe_allow_html=True)
+        c5.markdown(f'<div class="kpi-card"><div class="kpi-title">F1 Score</div><div class="kpi-value">{f1:.4f}</div></div>', unsafe_allow_html=True)
+        c6.markdown(f'<div class="kpi-card"><div class="kpi-title">MCC Score</div><div class="kpi-value">{mcc:.4f}</div></div>', unsafe_allow_html=True)
+        c7.markdown(f'<div class="kpi-card"><div class="kpi-title">Specificity</div><div class="kpi-value">{specificity:.4f}</div></div>', unsafe_allow_html=True)
+        c8.markdown(f'<div class="kpi-card"><div class="kpi-title">FPR</div><div class="kpi-value">{fpr:.4f}</div></div>', unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -318,9 +297,7 @@ if uploaded_file is not None:
 
         with col_left:
             st.markdown("##### 🔲 Confusion Matrix")
-            cm = confusion_matrix(y_test, y_pred)
-            
-            fig, ax = plt.subplots(figsize=(4.5, 3.5))
+            fig, ax = plt.subplots(figsize=(4.5, 3.2))
             fig.patch.set_facecolor('#f8f9fa')
             ax.set_facecolor('#f8f9fa')
             
@@ -336,14 +313,62 @@ if uploaded_file is not None:
             st.pyplot(fig)
 
         with col_right:
-            st.markdown("##### 📋 Detailed Classification Report")
+            st.markdown("##### 📋 Operational & Error Summary")
+            
+            st.info(f"🎯 **Total Churners Detected:** **{total_churners_caught}** out of **{total_actual_churners}** actual churners")
+            st.warning(f"⚠️ **False Negative Rate (FNR):** **{fnr:.4f}** ({fnr*100:.2f}% missed churners)")
+
             report_dict = classification_report(
                 y_test, y_pred, 
                 target_names=["Retained (0)", "Churned (1)"], 
                 output_dict=True
             )
+            # Filter out macro avg, weighted avg, and accuracy rows
             report_df = pd.DataFrame(report_dict).transpose().round(4)
-            st.dataframe(report_df, use_container_width=True)
+            filtered_report_df = report_df.loc[["Retained (0)", "Churned (1)"]]
+            st.dataframe(filtered_report_df, use_container_width=True)
+
+        st.markdown("---")
+        
+        # Model Comparison Bar Chart Section
+        st.subheader("📊 Classifier Comparison across Test Dataset")
+        
+        comparison_records = []
+        for name, m_obj in models.items():
+            p_pred, p_proba = run_model_inference(name, m_obj, X_test, scaler)
+            comparison_records.append({
+                "Model": name,
+                "Accuracy": accuracy_score(y_test, p_pred),
+                "Precision": precision_score(y_test, p_pred, zero_division=0),
+                "Recall": recall_score(y_test, p_pred, zero_division=0),
+                "F1 Score": f1_score(y_test, p_pred, zero_division=0),
+                "AUC": roc_auc_score(y_test, p_proba)
+            })
+            
+        comp_df = pd.DataFrame(comparison_records)
+        comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Score")
+
+        fig_comp, ax_comp = plt.subplots(figsize=(10, 4))
+        fig_comp.patch.set_facecolor('#f8f9fa')
+        ax_comp.set_facecolor('#f8f9fa')
+
+        sns.barplot(
+            data=comp_melted, 
+            x="Model", 
+            y="Score", 
+            hue="Metric", 
+            palette="Blues_r",
+            ax=ax_comp
+        )
+
+        plt.ylim(0, 1.05)
+        plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=8)
+        plt.ylabel("Score", fontsize=10, fontweight='bold', labelpad=8)
+        plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0.)
+        plt.xticks(rotation=15, fontweight='bold')
+        plt.grid(axis='y', linestyle='--', alpha=0.5)
+        plt.tight_layout()
+        st.pyplot(fig_comp)
 
     # --------------------------------------------------------------------------
     # Scenario B: Target Column Missing -> Batch Prediction View
