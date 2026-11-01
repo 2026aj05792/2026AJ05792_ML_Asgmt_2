@@ -164,9 +164,9 @@ def load_pipeline_artifacts():
     scaler = joblib.load(MODEL_DIR / "scaler.pkl")
     models = {
         "Logistic Regression": joblib.load(MODEL_DIR / "logistic_regression.pkl"),
-        "Decision Tree": joblib.load(MODEL_DIR / "decision_tree.pkl"),
-        "KNN": joblib.load(MODEL_DIR / "knn.pkl"),
-        "Naive Bayes": joblib.load(MODEL_DIR / "naive_bayes.pkl"),
+        "Decision Tree Classifier": joblib.load(MODEL_DIR / "decision_tree.pkl"),
+        "K-Nearest Neighbor Classifier": joblib.load(MODEL_DIR / "knn.pkl"),
+        "Naive Bayes Classifier - Gaussian": joblib.load(MODEL_DIR / "naive_bayes.pkl"),
         "Support Vector Machine": joblib.load(MODEL_DIR / "support_vector_machine.pkl")
     }
     return scaler, models
@@ -188,7 +188,7 @@ def run_model_inference(m_name, m_obj, df_features, scaler_obj):
     else:
         df_proc = df_features.copy()
 
-    if m_name in ["Logistic Regression", "KNN", "Support Vector Machine"]:
+    if m_name in ["Logistic Regression", "K-Nearest Neighbor Classifier", "Support Vector Machine"]:
         try:
             X_proc = scaler_obj.transform(df_proc)
         except ValueError:
@@ -345,7 +345,7 @@ if uploaded_file is not None:
         st.markdown("---")
         
         # ----------------------------------------------------------------------
-        # Model Comparison Bar Chart Section (HIGH CONTRAST PALETTE FIX)
+        # Model Comparison Bar Chart Section
         # ----------------------------------------------------------------------
         st.subheader("📊 Classifier Comparison across Test Dataset (%)")
         
@@ -364,11 +364,10 @@ if uploaded_file is not None:
         comp_df = pd.DataFrame(comparison_records)
         comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Percentage (%)")
 
-        fig_comp, ax_comp = plt.subplots(figsize=(10, 4.2))
+        fig_comp, ax_comp = plt.subplots(figsize=(10, 4.5))
         fig_comp.patch.set_facecolor('#f8f9fa')
         ax_comp.set_facecolor('#f8f9fa')
 
-        # FIX: Distinct, high-contrast brand colors for each metric bar
         custom_palette = ["#1e3a8a", "#0284c7", "#0d9488", "#e11d48", "#475569"]
 
         sns.barplot(
@@ -384,7 +383,7 @@ if uploaded_file is not None:
         plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=8)
         plt.ylabel("Score Percentage (%)", fontsize=10, fontweight='bold', labelpad=8)
         plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0., frameon=True)
-        plt.xticks(rotation=15, fontweight='bold')
+        plt.xticks(rotation=20, fontweight='bold', ha='right')
         plt.grid(axis='y', linestyle='--', alpha=0.5)
         plt.tight_layout()
         st.pyplot(fig_comp)
