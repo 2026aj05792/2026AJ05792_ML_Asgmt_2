@@ -22,7 +22,7 @@ from sklearn.metrics import (
 )
 
 # ------------------------------------------------------------------------------
-# 1. Page Configuration & Custom KPI Cards Styling
+# 1. Page Configuration & Custom KPI Cards Styling (NO-WRAP FIX)
 # ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Telco Churn Analytics",
@@ -38,7 +38,7 @@ st.markdown("""
         background-color: #f8f9fa;
     }
     
-    /* Title styling - Single line fit */
+    /* Headers - Single line title fit */
     h1 {
         color: #1e293b;
         font-family: 'Inter', sans-serif;
@@ -48,12 +48,11 @@ st.markdown("""
         white-space: nowrap;
     }
     
-    /* Sidebar container */
+    /* Sidebar styling */
     [data-testid="stSidebar"] {
         background-color: #0f172a !important;
     }
     
-    /* Sidebar labels & text */
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3, 
@@ -84,36 +83,42 @@ st.markdown("""
     }
 
     /* -------------------------------------------------------------------------
-       CUSTOM HIGH-VISIBILITY METRIC KPI CARDS
+       STRICT SINGLE-LINE (NO-WRAP) KPI CARDS
        ------------------------------------------------------------------------- */
     .kpi-card {
         background-color: #ffffff;
         border: 1px solid #e2e8f0;
         border-top: 4px solid #0284c7;
-        border-radius: 10px;
-        padding: 16px 8px;
+        border-radius: 8px;
+        padding: 10px 4px;
         text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        margin-bottom: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        margin-bottom: 10px;
     }
 
     .kpi-title {
         color: #64748b;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 6px;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .kpi-value {
         color: #0f172a;
-        font-size: 1.8rem;
+        font-size: 1.45rem;
         font-weight: 800;
         font-family: 'Inter', sans-serif;
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        letter-spacing: -0.02em;
     }
 
-    /* Table visual refinement */
+    /* Dataframe visual styling */
     .stDataFrame {
         border-radius: 8px;
         overflow: hidden;
@@ -236,7 +241,7 @@ if uploaded_file is not None:
         f1 = f1_score(y_test, y_pred, zero_division=0)
         mcc = matthews_corrcoef(y_test, y_pred)
 
-        # High-Impact Custom KPI Cards Layout
+        # 6 Single-Line Metric Cards
         c1, c2, c3, c4, c5, c6 = st.columns(6)
         
         c1.markdown(f'''
