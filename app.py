@@ -22,7 +22,7 @@ from sklearn.metrics import (
 )
 
 # ------------------------------------------------------------------------------
-# 1. Page Configuration & Custom Styling (CONTRAST FIX FOR UPLOADED FILE TEXT)
+# 1. Page Configuration & Custom Styling (DARK UPLOAD CARD CONTRAST FIX)
 # ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Telco Churn Analytics",
@@ -59,12 +59,11 @@ st.markdown("""
     [data-testid="stSidebar"] h3, 
     [data-testid="stSidebar"] label,
     [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] div {
-        color: #f8fafc;
+    [data-testid="stSidebar"] span {
+        color: #f8fafc !important;
     }
 
-    /* Fix File Uploader container */
+    /* Fix File Uploader Dropzone */
     [data-testid="stFileUploader"] section {
         background-color: #1e293b !important;
         border: 1px dashed #475569 !important;
@@ -83,25 +82,30 @@ st.markdown("""
         background-color: #0369a1 !important;
     }
 
-    /* FIX: Force high-contrast dark text inside the light Uploaded File Item container */
-    [data-testid="stFileUploaderFileData"] {
-        background-color: #ffffff !important;
+    /* CRITICAL FIX: Make the uploaded file pill dark with high-contrast text & icons */
+    [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {
+        color: #f8fafc !important;
+    }
+
+    [data-testid="stFileUploader"] ul, 
+    [data-testid="stFileUploader"] li, 
+    [data-testid="stFileUploader"] div[role="button"],
+    div[data-testid="stFileUploaderFile"] {
+        background-color: #334155 !important;
         border-radius: 6px !important;
     }
 
-    [data-testid="stFileUploaderFileData"] div,
-    [data-testid="stFileUploaderFileData"] span,
-    [data-testid="stFileUploaderFileData"] p,
-    [data-testid="stFileUploaderFileName"],
-    [data-testid="stFileUploaderFileSize"] {
-        color: #0f172a !important;
+    [data-testid="stFileUploader"] small,
+    [data-testid="stFileUploader"] span,
+    [data-testid="stFileUploader"] p {
+        color: #f1f5f9 !important;
         font-weight: 600 !important;
         opacity: 1 !important;
     }
 
-    [data-testid="stFileUploaderFileData"] svg {
-        fill: #0284c7 !important;
-        color: #0284c7 !important;
+    [data-testid="stFileUploader"] svg {
+        fill: #38bdf8 !important;
+        color: #38bdf8 !important;
     }
 
     /* -------------------------------------------------------------------------
