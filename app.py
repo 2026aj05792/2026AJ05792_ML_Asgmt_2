@@ -1,91 +1,145 @@
+# ==============================================================================
+# Streamlit Web Application for Model Evaluation & Assignment Submission
+# ==============================================================================
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
+from pathlib import Path
+
 from sklearn.metrics import (
-    accuracy_score, roc_auc_score, precision_score, 
-    recall_score, f1_score, matthews_corrcoef,
-    confusion_matrix, classification_report
+    accuracy_score,
+    roc_auc_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    matthews_corrcoef,
+    confusion_matrix,
+    classification_report
 )
 
-st.set_page_config(page_title="Telco Churn Prediction", layout="wide")
+# Page setup
+st.set_page_config(
+    page_title="Telco Churn Model Evaluator",
+    page_icon="📈",
+    layout="wide"
+)
 
-st.title("📊 Telco Customer Churn Classification Dashboard")
-st.markdown("Upload test dataset (CSV) to evaluate saved machine learning classifiers.")
+BASE_DIR = Path.cwd()
+MODEL_DIR = BASE_DIR / "model"
+OPTIMIZED_THRESHOLD = 0.45
 
-# Sidebar Configuration
+# ------------------------------------------------------------------------------
+# 1. Load Pre-Trained Models & Scaler
+# ------------------------------------------------------------------------------
+@st.cache_resource
+def load_pipeline_artifacts():
+    scaler = joblib.load(MODEL_DIR / "scaler.pkl")
+    models = {
+        "Logistic Regression": joblib.load(MODEL_DIR / "logistic_regression.pkl"),
+        "Decision Tree": joblib.load(MODEL_DIR / "decision_tree.pkl"),
+        "KNN": joblib.load(MODEL_DIR / "knn.pkl"),
+        "Naive Bayes": joblib.load(MODEL_DIR / "naive_bayes.pkl"),
+        "Support Vector Machine": joblib.load(MODEL_DIR / "support_vector_machine.pkl")
+    }
+    return scaler, models
+
+try:
+    scaler, models = load_pipeline_artifacts()
+except Exception as e:
+    st.error(f"Error loading model directory `{MODEL_DIR}`: {e}")
+    st.stop()
+
+# ------------------------------------------------------------------------------
+# 2. Sidebar Controls (Feature a & Feature b)
+# ------------------------------------------------------------------------------
 st.sidebar.header("Upload & Select Model")
+
+# Feature a: Dataset upload option (CSV)
 uploaded_file = st.sidebar.file_uploader("Upload Test Dataset (CSV)", type=["csv"])
 
-model_options = {
-    "Logistic Regression": "model/logistic_regression.pkl",
-    "Decision Tree": "model/decision_tree.pkl",
-    "KNN": "model/knn.pkl",
-    "Naive Bayes": "model/naive_bayes.pkl",
-    "Support Vector Machine": "model/support_vector_machine.pkl"
-}
+# Feature b: Model selection dropdown
+selected_model_name = st.sidebar.selectbox("Select ML Model", list(models.keys()))
+model = models[selected_model_name]
 
-selected_model_name = st.sidebar.selectbox("Select ML Model", list(model_options.keys()))
+st.title("📊 Telco Customer Churn Classification Dashboard")
+st.write("Upload test dataset (CSV) to evaluate saved machine learning classifiers.")
 
+# ------------------------------------------------------------------------------
+# 3. Main Evaluation Logic
+# ------------------------------------------------------------------------------
 if uploaded_file is not None:
     test_df = pd.read_csv(uploaded_file)
     
     if 'Churn' not in test_df.columns:
-        st.error("Error: Target column 'Churn' is missing from uploaded CSV.")
+        st.error("Uploaded CSV must contain the ground truth target column `'Churn'`.")
+        st.stop()
+
+    # Separate feature matrix and ground truth vector
+    X_test = test_df.drop(columns=['Churn'])
+    y_test = test_df['Churn']
+
+    # Preprocess test data matching algorithm requirements
+    if selected_model_name in ["Logistic Regression", "KNN", "Support Vector Machine"]:
+        X_test_proc = scaler.transform(X_test)
     else:
-        st.subheader("📌 Raw Uploaded Test Data Preview")
-        st.dataframe(test_df.head())
+        X_test_proc = X_test.values
 
-        # Split features and target
-        y_test = test_df['Churn']
-        X_test = test_df.drop(columns=['Churn'])
+    # Inference without retraining
+    if hasattr(model, "predict_proba"):
+        y_proba = model.predict_proba(X_test_proc)[:, 1]
+    else:
+        y_proba = model.predict(X_test_proc)
 
-        scaler = joblib.load('model/scaler.pkl')
-        model = joblib.load(model_options[selected_model_name])
+    y_pred = (y_proba >= OPTIMIZED_THRESHOLD).astype(int)
 
-        if selected_model_name in ['Logistic Regression', 'KNN', 'Support Vector Machine']:
-            X_eval = scaler.transform(X_test)
-        else:
-            X_eval = X_test
+    # --------------------------------------------------------------------------
+    # Feature c: Display of Evaluation Metrics
+    # --------------------------------------------------------------------------
+    st.markdown(f"### Evaluation Metrics — `{selected_model_name}`")
+    
+    acc = accuracy_score(y_test, y_pred)
+    auc = roc_auc_score(y_test, y_proba)
+    prec = precision_score(y_test, y_pred, zero_division=0)
+    rec = recall_score(y_test, y_pred, zero_division=0)
+    f1 = f1_score(y_test, y_pred, zero_division=0)
+    mcc = matthews_corrcoef(y_test, y_pred)
 
-        y_pred = model.predict(X_eval)
-        y_proba = model.predict_proba(X_eval)[:, 1] if hasattr(model, "predict_proba") else y_pred
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1.metric("Accuracy", f"{acc:.4f}")
+    m2.metric("AUC Score", f"{auc:.4f}")
+    m3.metric("Precision", f"{prec:.4f}")
+    m4.metric("Recall", f"{rec:.4f}")
+    m5.metric("F1 Score", f"{f1:.4f}")
+    m6.metric("MCC Score", f"{mcc:.4f}")
 
-        acc = accuracy_score(y_test, y_pred)
-        auc = roc_auc_score(y_test, y_proba)
-        prec = precision_score(y_test, y_pred, zero_division=0)
-        rec = recall_score(y_test, y_pred, zero_division=0)
-        f1 = f1_score(y_test, y_pred, zero_division=0)
-        mcc = matthews_corrcoef(y_test, y_pred)
+    st.markdown("---")
 
-        st.subheader(f"📈 Evaluation Metrics: {selected_model_name}")
-        c1, c2, c3, c4, c5, c6 = st.columns(6)
-        c1.metric("Accuracy", f"{acc:.4f}")
-        c2.metric("AUC Score", f"{auc:.4f}")
-        c3.metric("Precision", f"{prec:.4f}")
-        c4.metric("Recall", f"{rec:.4f}")
-        c5.metric("F1 Score", f"{f1:.4f}")
-        c6.metric("MCC Score", f"{mcc:.4f}")
+    # --------------------------------------------------------------------------
+    # Feature d: Confusion Matrix or Classification Report
+    # --------------------------------------------------------------------------
+    col_left, col_right = st.columns(2)
 
-        st.markdown("---")
-        col1, col2 = st.columns(2)
+    with col_left:
+        st.subheader("Confusion Matrix")
+        cm = confusion_matrix(y_test, y_pred)
+        
+        fig, ax = plt.subplots(figsize=(5, 4))
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, ax=ax,
+                    xticklabels=["No Churn (0)", "Churn (1)"],
+                    yticklabels=["No Churn (0)", "Churn (1)"])
+        plt.xlabel("Predicted Label")
+        plt.ylabel("True Label")
+        st.pyplot(fig)
 
-        with col1:
-            st.subheader("🔍 Confusion Matrix")
-            cm = confusion_matrix(y_test, y_pred)
-            fig, ax = plt.subplots(figsize=(4, 3))
-            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
-                        xticklabels=['No Churn', 'Churn'],
-                        yticklabels=['No Churn', 'Churn'])
-            plt.ylabel('Actual')
-            plt.xlabel('Predicted')
-            st.pyplot(fig)
+    with col_right:
+        st.subheader("Classification Report")
+        report_dict = classification_report(y_test, y_pred, target_names=["No Churn (0)", "Churn (1)"], output_dict=True)
+        report_df = pd.DataFrame(report_dict).transpose().round(4)
+        st.dataframe(report_df, use_container_width=True)
 
-        with col2:
-            st.subheader("📋 Classification Report")
-            report_dict = classification_report(y_test, y_pred, output_dict=True)
-            st.dataframe(pd.DataFrame(report_dict).transpose())
 else:
     st.info("👈 Please upload `test_data.csv` in the sidebar to run model evaluations.")
