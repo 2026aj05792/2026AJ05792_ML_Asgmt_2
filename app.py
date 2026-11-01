@@ -344,7 +344,9 @@ if uploaded_file is not None:
 
         st.markdown("---")
         
-        # Model Comparison Bar Chart Section
+        # ----------------------------------------------------------------------
+        # Model Comparison Bar Chart Section (HIGH CONTRAST PALETTE FIX)
+        # ----------------------------------------------------------------------
         st.subheader("📊 Classifier Comparison across Test Dataset (%)")
         
         comparison_records = []
@@ -362,23 +364,26 @@ if uploaded_file is not None:
         comp_df = pd.DataFrame(comparison_records)
         comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Percentage (%)")
 
-        fig_comp, ax_comp = plt.subplots(figsize=(10, 4))
+        fig_comp, ax_comp = plt.subplots(figsize=(10, 4.2))
         fig_comp.patch.set_facecolor('#f8f9fa')
         ax_comp.set_facecolor('#f8f9fa')
+
+        # FIX: Distinct, high-contrast brand colors for each metric bar
+        custom_palette = ["#1e3a8a", "#0284c7", "#0d9488", "#e11d48", "#475569"]
 
         sns.barplot(
             data=comp_melted, 
             x="Model", 
             y="Percentage (%)", 
             hue="Metric", 
-            palette="Blues_r",
+            palette=custom_palette,
             ax=ax_comp
         )
 
         plt.ylim(0, 105)
         plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=8)
         plt.ylabel("Score Percentage (%)", fontsize=10, fontweight='bold', labelpad=8)
-        plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0.)
+        plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0., frameon=True)
         plt.xticks(rotation=15, fontweight='bold')
         plt.grid(axis='y', linestyle='--', alpha=0.5)
         plt.tight_layout()
