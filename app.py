@@ -60,10 +60,7 @@ except Exception as e:
 # ------------------------------------------------------------------------------
 st.sidebar.header("Upload & Select Model")
 
-# Feature a: Dataset upload option (CSV)
 uploaded_file = st.sidebar.file_uploader("Upload Test Dataset (CSV)", type=["csv"])
-
-# Feature b: Model selection dropdown
 selected_model_name = st.sidebar.selectbox("Select ML Model", list(models.keys()))
 model = models[selected_model_name]
 
@@ -76,10 +73,10 @@ st.write("Upload test dataset (CSV) to evaluate saved machine learning classifie
 if uploaded_file is not None:
     test_df = pd.read_csv(uploaded_file)
     
-    # Clean whitespace from CSV column names
+    # Clean whitespace from column headers
     test_df.columns = test_df.columns.str.strip()
     
-    # Case-insensitive check for target column 'Churn'
+    # Identify target column 'Churn' (case-insensitive)
     target_col = None
     for col in test_df.columns:
         if col.lower() == 'churn':
@@ -94,13 +91,24 @@ if uploaded_file is not None:
     else:
         X_test = test_df.copy()
 
-    # Preprocessing matching training configuration
+    # Align columns to scaler feature order if recorded during training
+    if hasattr(scaler, "feature_names_in_"):
+        expected_features = list(scaler.feature_names_in_)
+        missing_cols = set(expected_features) - set(X_test.columns)
+        for col in missing_cols:
+            X_test[col] = 0
+        X_test = X_test[expected_features]
+
+    # Preprocessing with fallback array transform (bypasses sklearn feature name validation error)
     if selected_model_name in ["Logistic Regression", "KNN", "Support Vector Machine"]:
-        X_test_proc = scaler.transform(X_test)
+        try:
+            X_test_proc = scaler.transform(X_test)
+        except ValueError:
+            X_test_proc = scaler.transform(X_test.values)
     else:
         X_test_proc = X_test.values
 
-    # Inference execution (without retraining)
+    # Model inference
     if hasattr(model, "predict_proba"):
         y_proba = model.predict_proba(X_test_proc)[:, 1]
     else:
@@ -109,12 +117,11 @@ if uploaded_file is not None:
     y_pred = (y_proba >= OPTIMIZED_THRESHOLD).astype(int)
 
     # --------------------------------------------------------------------------
-    # Scenario A: Target Column Present -> Display Rubric Metrics & Visuals
+    # Scenario A: Target Column Present -> Display Evaluation Metrics
     # --------------------------------------------------------------------------
     if has_target:
         st.markdown(f"### Evaluation Metrics — `{selected_model_name}`")
         
-        # Feature c: Display of evaluation metrics
         acc = accuracy_score(y_test, y_pred)
         auc = roc_auc_score(y_test, y_proba)
         prec = precision_score(y_test, y_pred, zero_division=0)
@@ -132,7 +139,6 @@ if uploaded_file is not None:
 
         st.markdown("---")
 
-        # Feature d: Confusion matrix & classification report
         col_left, col_right = st.columns(2)
 
         with col_left:
@@ -158,7 +164,7 @@ if uploaded_file is not None:
             st.dataframe(report_df, use_container_width=True)
 
     # --------------------------------------------------------------------------
-    # Scenario B: Target Column Missing -> Output Batch Predictions
+    # Scenario B: Target Column Absent -> Output Batch Predictions
     # --------------------------------------------------------------------------
     else:
         st.info("ℹ️ Target column `'Churn'` not found. Outputting batch predictions below:")
