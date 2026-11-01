@@ -1,5 +1,5 @@
 # ==============================================================================
-# Streamlit Web Application for Model Evaluation & Assignment Submission
+# Streamlit Web Application: Telco Churn Classification & Model Evaluation
 # ==============================================================================
 
 import streamlit as st
@@ -21,10 +21,12 @@ from sklearn.metrics import (
     classification_report
 )
 
-# Page setup
+# ------------------------------------------------------------------------------
+# 1. Page Setup & Configuration
+# ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Telco Churn Model Evaluator",
-    page_icon="📈",
+    page_icon="📊",
     layout="wide"
 )
 
@@ -33,7 +35,7 @@ MODEL_DIR = BASE_DIR / "model"
 OPTIMIZED_THRESHOLD = 0.45
 
 # ------------------------------------------------------------------------------
-# 1. Load Pre-Trained Models & Scaler
+# 2. Artifact Loading Pipeline
 # ------------------------------------------------------------------------------
 @st.cache_resource
 def load_pipeline_artifacts():
@@ -50,11 +52,11 @@ def load_pipeline_artifacts():
 try:
     scaler, models = load_pipeline_artifacts()
 except Exception as e:
-    st.error(f"Error loading model directory `{MODEL_DIR}`: {e}")
+    st.error(f"⚠️ Error loading model artifacts from `{MODEL_DIR}`: {e}")
     st.stop()
 
 # ------------------------------------------------------------------------------
-# 2. Sidebar Controls (Feature a & Feature b)
+# 3. Sidebar Controls
 # ------------------------------------------------------------------------------
 st.sidebar.header("Upload & Select Model")
 
@@ -65,30 +67,40 @@ uploaded_file = st.sidebar.file_uploader("Upload Test Dataset (CSV)", type=["csv
 selected_model_name = st.sidebar.selectbox("Select ML Model", list(models.keys()))
 model = models[selected_model_name]
 
+# ------------------------------------------------------------------------------
+# 4. Main Interface Engine
+# ------------------------------------------------------------------------------
 st.title("📊 Telco Customer Churn Classification Dashboard")
 st.write("Upload test dataset (CSV) to evaluate saved machine learning classifiers.")
 
-# ------------------------------------------------------------------------------
-# 3. Main Evaluation Logic
-# ------------------------------------------------------------------------------
 if uploaded_file is not None:
     test_df = pd.read_csv(uploaded_file)
     
-    if 'Churn' not in test_df.columns:
-        st.error("Uploaded CSV must contain the ground truth target column `'Churn'`.")
-        st.stop()
+    # Clean whitespace from CSV column names
+    test_df.columns = test_df.columns.str.strip()
+    
+    # Case-insensitive check for target column 'Churn'
+    target_col = None
+    for col in test_df.columns:
+        if col.lower() == 'churn':
+            target_col = col
+            break
+            
+    has_target = target_col is not None
+    
+    if has_target:
+        X_test = test_df.drop(columns=[target_col])
+        y_test = test_df[target_col].astype(int)
+    else:
+        X_test = test_df.copy()
 
-    # Separate feature matrix and ground truth vector
-    X_test = test_df.drop(columns=['Churn'])
-    y_test = test_df['Churn']
-
-    # Preprocess test data matching algorithm requirements
+    # Preprocessing matching training configuration
     if selected_model_name in ["Logistic Regression", "KNN", "Support Vector Machine"]:
         X_test_proc = scaler.transform(X_test)
     else:
         X_test_proc = X_test.values
 
-    # Inference without retraining
+    # Inference execution (without retraining)
     if hasattr(model, "predict_proba"):
         y_proba = model.predict_proba(X_test_proc)[:, 1]
     else:
@@ -97,49 +109,73 @@ if uploaded_file is not None:
     y_pred = (y_proba >= OPTIMIZED_THRESHOLD).astype(int)
 
     # --------------------------------------------------------------------------
-    # Feature c: Display of Evaluation Metrics
+    # Scenario A: Target Column Present -> Display Rubric Metrics & Visuals
     # --------------------------------------------------------------------------
-    st.markdown(f"### Evaluation Metrics — `{selected_model_name}`")
-    
-    acc = accuracy_score(y_test, y_pred)
-    auc = roc_auc_score(y_test, y_proba)
-    prec = precision_score(y_test, y_pred, zero_division=0)
-    rec = recall_score(y_test, y_pred, zero_division=0)
-    f1 = f1_score(y_test, y_pred, zero_division=0)
-    mcc = matthews_corrcoef(y_test, y_pred)
-
-    m1, m2, m3, m4, m5, m6 = st.columns(6)
-    m1.metric("Accuracy", f"{acc:.4f}")
-    m2.metric("AUC Score", f"{auc:.4f}")
-    m3.metric("Precision", f"{prec:.4f}")
-    m4.metric("Recall", f"{rec:.4f}")
-    m5.metric("F1 Score", f"{f1:.4f}")
-    m6.metric("MCC Score", f"{mcc:.4f}")
-
-    st.markdown("---")
-
-    # --------------------------------------------------------------------------
-    # Feature d: Confusion Matrix or Classification Report
-    # --------------------------------------------------------------------------
-    col_left, col_right = st.columns(2)
-
-    with col_left:
-        st.subheader("Confusion Matrix")
-        cm = confusion_matrix(y_test, y_pred)
+    if has_target:
+        st.markdown(f"### Evaluation Metrics — `{selected_model_name}`")
         
-        fig, ax = plt.subplots(figsize=(5, 4))
-        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, ax=ax,
-                    xticklabels=["No Churn (0)", "Churn (1)"],
-                    yticklabels=["No Churn (0)", "Churn (1)"])
-        plt.xlabel("Predicted Label")
-        plt.ylabel("True Label")
-        st.pyplot(fig)
+        # Feature c: Display of evaluation metrics
+        acc = accuracy_score(y_test, y_pred)
+        auc = roc_auc_score(y_test, y_proba)
+        prec = precision_score(y_test, y_pred, zero_division=0)
+        rec = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
+        mcc = matthews_corrcoef(y_test, y_pred)
 
-    with col_right:
-        st.subheader("Classification Report")
-        report_dict = classification_report(y_test, y_pred, target_names=["No Churn (0)", "Churn (1)"], output_dict=True)
-        report_df = pd.DataFrame(report_dict).transpose().round(4)
-        st.dataframe(report_df, use_container_width=True)
+        m1, m2, m3, m4, m5, m6 = st.columns(6)
+        m1.metric("Accuracy", f"{acc:.4f}")
+        m2.metric("AUC Score", f"{auc:.4f}")
+        m3.metric("Precision", f"{prec:.4f}")
+        m4.metric("Recall", f"{rec:.4f}")
+        m5.metric("F1 Score", f"{f1:.4f}")
+        m6.metric("MCC Score", f"{mcc:.4f}")
+
+        st.markdown("---")
+
+        # Feature d: Confusion matrix & classification report
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            st.subheader("Confusion Matrix")
+            cm = confusion_matrix(y_test, y_pred)
+            
+            fig, ax = plt.subplots(figsize=(5, 4))
+            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, ax=ax,
+                        xticklabels=["No Churn (0)", "Churn (1)"],
+                        yticklabels=["No Churn (0)", "Churn (1)"])
+            plt.xlabel("Predicted Label")
+            plt.ylabel("True Label")
+            st.pyplot(fig)
+
+        with col_right:
+            st.subheader("Classification Report")
+            report_dict = classification_report(
+                y_test, y_pred, 
+                target_names=["No Churn (0)", "Churn (1)"], 
+                output_dict=True
+            )
+            report_df = pd.DataFrame(report_dict).transpose().round(4)
+            st.dataframe(report_df, use_container_width=True)
+
+    # --------------------------------------------------------------------------
+    # Scenario B: Target Column Missing -> Output Batch Predictions
+    # --------------------------------------------------------------------------
+    else:
+        st.info("ℹ️ Target column `'Churn'` not found. Outputting batch predictions below:")
+        output_df = test_df.copy()
+        output_df['Predicted_Probability'] = np.round(y_proba, 4)
+        output_df['Predicted_Churn'] = y_pred
+
+        st.dataframe(output_df, use_container_width=True)
+
+        csv_export = output_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Predictions CSV",
+            data=csv_export,
+            file_name=f"churn_predictions_{selected_model_name.lower().replace(' ', '_')}.csv",
+            mime="text/csv",
+            type="primary"
+        )
 
 else:
     st.info("👈 Please upload `test_data.csv` in the sidebar to run model evaluations.")
