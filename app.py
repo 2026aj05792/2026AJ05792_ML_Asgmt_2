@@ -22,13 +22,61 @@ from sklearn.metrics import (
 )
 
 # ------------------------------------------------------------------------------
-# 1. Page Setup & Configuration
+# 1. Page Configuration & Custom CSS Styling
 # ------------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Telco Churn Model Evaluator",
-    page_icon="📊",
-    layout="wide"
+    page_title="Telco Churn Analytics",
+    page_icon="⚡",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# Custom CSS for executive look and feel
+st.markdown("""
+    <style>
+    /* Main container styling */
+    .main {
+        background-color: #f8f9fa;
+    }
+    
+    /* Title and Header styling */
+    h1 {
+        color: #1e293b;
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+    }
+    
+    /* Sidebar customization */
+    [data-testid="stSidebar"] {
+        background-color: #0f172a;
+        color: #ffffff;
+    }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] label {
+        color: #f8fafc !important;
+    }
+    
+    /* Card metric containers */
+    div[data-testid="stMetricValue"] {
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+        color: #0284c7 !important;
+    }
+    
+    div[data-testid="stMetricLabel"] {
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        color: #64748b !important;
+    }
+
+    /* Dataframe styling */
+    .stDataFrame {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 BASE_DIR = Path.cwd()
 MODEL_DIR = BASE_DIR / "model"
@@ -58,25 +106,39 @@ except Exception as e:
 # ------------------------------------------------------------------------------
 # 3. Sidebar Controls
 # ------------------------------------------------------------------------------
-st.sidebar.header("Upload & Select Model")
+with st.sidebar:
+    st.title("⚙️ Control Panel")
+    st.markdown("---")
+    
+    st.subheader("1. Data Input")
+    uploaded_file = st.file_uploader("Upload Test Dataset (CSV)", type=["csv"], help="Upload test_data.csv containing customer features.")
+    
+    st.subheader("2. Model Selection")
+    selected_model_name = st.selectbox(
+        "Choose Classifier",
+        list(models.keys()),
+        index=4,  # Defaults to SVM
+        help="Select any of the 5 trained ML classifiers to run evaluations."
+    )
+    
+    st.markdown("---")
+    st.caption("🔒 Fixed Threshold: **0.45**")
+    st.caption("📌 Scaler & Encoders: Active")
 
-uploaded_file = st.sidebar.file_uploader("Upload Test Dataset (CSV)", type=["csv"])
-selected_model_name = st.sidebar.selectbox("Select ML Model", list(models.keys()))
 model = models[selected_model_name]
 
 # ------------------------------------------------------------------------------
-# 4. Main Interface Engine
+# 4. Main Interface Header
 # ------------------------------------------------------------------------------
-st.title("📊 Telco Customer Churn Classification Dashboard")
-st.write("Upload test dataset (CSV) to evaluate saved machine learning classifiers.")
+st.title("⚡ Telco Customer Churn Intelligence Dashboard")
+st.markdown("Evaluate trained classifiers on unseen test data or perform real-time batch customer churn predictions.")
+st.markdown("---")
 
 if uploaded_file is not None:
     test_df = pd.read_csv(uploaded_file)
-    
-    # Clean whitespace from column headers
     test_df.columns = test_df.columns.str.strip()
     
-    # Identify target column 'Churn' (case-insensitive)
+    # Identify target column 'Churn'
     target_col = None
     for col in test_df.columns:
         if col.lower() == 'churn':
@@ -91,7 +153,7 @@ if uploaded_file is not None:
     else:
         X_test = test_df.copy()
 
-    # Align columns to scaler feature order if recorded during training
+    # Column alignment to match feature order expected by scaler/model
     if hasattr(scaler, "feature_names_in_"):
         expected_features = list(scaler.feature_names_in_)
         missing_cols = set(expected_features) - set(X_test.columns)
@@ -99,28 +161,32 @@ if uploaded_file is not None:
             X_test[col] = 0
         X_test = X_test[expected_features]
 
-    # Preprocessing with fallback array transform (bypasses sklearn feature name validation error)
+    # Preprocessing: Scale features for distance/linear models
     if selected_model_name in ["Logistic Regression", "KNN", "Support Vector Machine"]:
         try:
             X_test_proc = scaler.transform(X_test)
         except ValueError:
             X_test_proc = scaler.transform(X_test.values)
     else:
-        X_test_proc = X_test.values
+        X_test_proc = X_test.copy()
 
-    # Model inference
+    # Synchronized Probability Inference Engine
     if hasattr(model, "predict_proba"):
         y_proba = model.predict_proba(X_test_proc)[:, 1]
+    elif hasattr(model, "decision_function"):
+        d_scores = model.decision_function(X_test_proc)
+        y_proba = 1 / (1 + np.exp(-d_scores))
     else:
         y_proba = model.predict(X_test_proc)
 
+    # Classification decision at fixed 0.45 threshold
     y_pred = (y_proba >= OPTIMIZED_THRESHOLD).astype(int)
 
     # --------------------------------------------------------------------------
-    # Scenario A: Target Column Present -> Display Evaluation Metrics
+    # Scenario A: Target Column Present -> Evaluation View
     # --------------------------------------------------------------------------
     if has_target:
-        st.markdown(f"### Evaluation Metrics — `{selected_model_name}`")
+        st.subheader(f"🎯 Performance Metrics: `{selected_model_name}`")
         
         acc = accuracy_score(y_test, y_pred)
         auc = roc_auc_score(y_test, y_proba)
@@ -129,45 +195,53 @@ if uploaded_file is not None:
         f1 = f1_score(y_test, y_pred, zero_division=0)
         mcc = matthews_corrcoef(y_test, y_pred)
 
-        m1, m2, m3, m4, m5, m6 = st.columns(6)
-        m1.metric("Accuracy", f"{acc:.4f}")
-        m2.metric("AUC Score", f"{auc:.4f}")
-        m3.metric("Precision", f"{prec:.4f}")
-        m4.metric("Recall", f"{rec:.4f}")
-        m5.metric("F1 Score", f"{f1:.4f}")
-        m6.metric("MCC Score", f"{mcc:.4f}")
+        # 6 Styled Metric Cards
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        col1.metric("Accuracy", f"{acc:.4f}")
+        col2.metric("AUC Score", f"{auc:.4f}")
+        col3.metric("Precision", f"{prec:.4f}")
+        col4.metric("Recall", f"{rec:.4f}")
+        col5.metric("F1 Score", f"{f1:.4f}")
+        col6.metric("MCC Score", f"{mcc:.4f}")
 
-        st.markdown("---")
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        col_left, col_right = st.columns(2)
+        col_left, col_right = st.columns([1, 1])
 
         with col_left:
-            st.subheader("Confusion Matrix")
+            st.markdown("##### 🔲 Confusion Matrix")
             cm = confusion_matrix(y_test, y_pred)
             
-            fig, ax = plt.subplots(figsize=(5, 4))
-            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, ax=ax,
-                        xticklabels=["No Churn (0)", "Churn (1)"],
-                        yticklabels=["No Churn (0)", "Churn (1)"])
-            plt.xlabel("Predicted Label")
-            plt.ylabel("True Label")
+            fig, ax = plt.subplots(figsize=(4.5, 3.5))
+            fig.patch.set_facecolor('#f8f9fa')
+            ax.set_facecolor('#f8f9fa')
+            
+            sns.heatmap(
+                cm, annot=True, fmt="d", cmap="YlGnBu", cbar=False, ax=ax,
+                annot_kws={"size": 12, "weight": "bold"},
+                xticklabels=["Retained (0)", "Churned (1)"],
+                yticklabels=["Retained (0)", "Churned (1)"]
+            )
+            plt.xlabel("Predicted Label", fontsize=10, fontweight='bold', labelpad=8)
+            plt.ylabel("True Label", fontsize=10, fontweight='bold', labelpad=8)
+            plt.tight_layout()
             st.pyplot(fig)
 
         with col_right:
-            st.subheader("Classification Report")
+            st.markdown("##### 📋 Detailed Classification Report")
             report_dict = classification_report(
                 y_test, y_pred, 
-                target_names=["No Churn (0)", "Churn (1)"], 
+                target_names=["Retained (0)", "Churned (1)"], 
                 output_dict=True
             )
             report_df = pd.DataFrame(report_dict).transpose().round(4)
             st.dataframe(report_df, use_container_width=True)
 
     # --------------------------------------------------------------------------
-    # Scenario B: Target Column Absent -> Output Batch Predictions
+    # Scenario B: Target Column Missing -> Batch Prediction View
     # --------------------------------------------------------------------------
     else:
-        st.info("ℹ️ Target column `'Churn'` not found. Outputting batch predictions below:")
+        st.info("ℹ️ Target column `'Churn'` not found. Displaying batch prediction predictions:")
         output_df = test_df.copy()
         output_df['Predicted_Probability'] = np.round(y_proba, 4)
         output_df['Predicted_Churn'] = y_pred
@@ -184,4 +258,5 @@ if uploaded_file is not None:
         )
 
 else:
-    st.info("👈 Please upload `test_data.csv` in the sidebar to run model evaluations.")
+    # Landing Empty State
+    st.info("👈 Upload your `test_data.csv` using the left control panel to begin model evaluation.")
