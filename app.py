@@ -22,7 +22,7 @@ from sklearn.metrics import (
 )
 
 # ------------------------------------------------------------------------------
-# 1. Page Configuration & Custom KPI Cards Styling (NO-WRAP FIX)
+# 1. Page Configuration & Custom Styling (CONTRAST FIX FOR UPLOADED FILE TEXT)
 # ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="Telco Churn Analytics",
@@ -48,11 +48,12 @@ st.markdown("""
         white-space: nowrap;
     }
     
-    /* Sidebar styling */
+    /* Sidebar container */
     [data-testid="stSidebar"] {
         background-color: #0f172a !important;
     }
     
+    /* General sidebar text, headers, and labels */
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3, 
@@ -60,10 +61,10 @@ st.markdown("""
     [data-testid="stSidebar"] p,
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] div {
-        color: #f8fafc !important;
+        color: #f8fafc;
     }
 
-    /* Fix File Uploader visibility & contrast */
+    /* Fix File Uploader container */
     [data-testid="stFileUploader"] section {
         background-color: #1e293b !important;
         border: 1px dashed #475569 !important;
@@ -80,6 +81,27 @@ st.markdown("""
 
     [data-testid="stFileUploader"] button:hover {
         background-color: #0369a1 !important;
+    }
+
+    /* FIX: Force high-contrast dark text inside the light Uploaded File Item container */
+    [data-testid="stFileUploaderFileData"] {
+        background-color: #ffffff !important;
+        border-radius: 6px !important;
+    }
+
+    [data-testid="stFileUploaderFileData"] div,
+    [data-testid="stFileUploaderFileData"] span,
+    [data-testid="stFileUploaderFileData"] p,
+    [data-testid="stFileUploaderFileName"],
+    [data-testid="stFileUploaderFileSize"] {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+        opacity: 1 !important;
+    }
+
+    [data-testid="stFileUploaderFileData"] svg {
+        fill: #0284c7 !important;
+        color: #0284c7 !important;
     }
 
     /* -------------------------------------------------------------------------
