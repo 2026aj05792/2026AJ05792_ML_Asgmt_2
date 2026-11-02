@@ -8,6 +8,7 @@ import numpy as np
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
+import altair as alt
 from pathlib import Path
 
 from sklearn.metrics import (
@@ -345,7 +346,7 @@ if uploaded_file is not None:
         st.markdown("---")
         
         # ----------------------------------------------------------------------
-        # Model Comparison Bar Chart Section (ENHANCED HIGH-CONTRAST PALETTE)
+        # Model Comparison Bar Chart Section (NATIVE ALTAIR INTERACTIVE CHART)
         # ----------------------------------------------------------------------
         st.subheader("📊 Classifier Comparison across Test Dataset (%)")
         
@@ -354,49 +355,35 @@ if uploaded_file is not None:
             p_pred, p_proba = run_model_inference(name, m_obj, X_test, scaler)
             comparison_records.append({
                 "Model": name,
-                "Accuracy (%)": accuracy_score(y_test, p_pred) * 100,
-                "Precision (%)": precision_score(y_test, p_pred, zero_division=0) * 100,
-                "Recall (%)": recall_score(y_test, p_pred, zero_division=0) * 100,
-                "F1 Score (%)": f1_score(y_test, p_pred, zero_division=0) * 100,
-                "AUC (%)": roc_auc_score(y_test, p_proba) * 100
+                "Accuracy (%)": round(accuracy_score(y_test, p_pred) * 100, 2),
+                "Precision (%)": round(precision_score(y_test, p_pred, zero_division=0) * 100, 2),
+                "Recall (%)": round(recall_score(y_test, p_pred, zero_division=0) * 100, 2),
+                "F1 Score (%)": round(f1_score(y_test, p_pred, zero_division=0) * 100, 2),
+                "AUC (%)": round(roc_auc_score(y_test, p_proba) * 100, 2)
             })
             
         comp_df = pd.DataFrame(comparison_records)
         comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Percentage (%)")
 
-        fig_comp, ax_comp = plt.subplots(figsize=(10.5, 4.8))
-        fig_comp.patch.set_facecolor('#ffffff')
-        ax_comp.set_facecolor('#f8fafc')
-
-        # Executive color palette with distinct high-contrast hues
-        # Accuracy: Royal Navy (#1e40af), Precision: Sky Blue (#0284c7),
-        # Recall: Emerald Green (#10b981), F1: Warm Amber (#f59e0b), AUC: Slate (#334155)
-        vibrant_palette = ["#1e40af", "#0284c7", "#10b981", "#f59e0b", "#334155"]
-
-        sns.barplot(
-            data=comp_melted, 
-            x="Model", 
-            y="Percentage (%)", 
-            hue="Metric", 
-            palette=vibrant_palette,
-            edgecolor="#ffffff",
-            linewidth=1,
-            ax=ax_comp
+        chart = alt.Chart(comp_melted).mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+            x=alt.X('Model:N', title=None, axis=alt.Axis(labelAngle=0, labelFontWeight='bold', labelFontSize=11, labelColor='#1e293b')),
+            y=alt.Y('Percentage (%):Q', title='Score Percentage (%)', scale=alt.Scale(domain=[0, 100])),
+            color=alt.Color('Metric:N', scale=alt.Scale(
+                domain=['Accuracy (%)', 'Precision (%)', 'Recall (%)', 'F1 Score (%)', 'AUC (%)'],
+                range=['#1D4ED8', '#0284C7', '#059669', '#D97706', '#475569']
+            ), legend=alt.Legend(title="Evaluation Metrics", orient="top")),
+            xOffset='Metric:N',
+            tooltip=['Model', 'Metric', 'Percentage (%)']
+        ).properties(
+            height=380
+        ).configure_view(
+            strokeWidth=0
+        ).configure_axis(
+            gridColor='#E2E8F0',
+            domainColor='#CBD5E1'
         )
 
-        plt.ylim(0, 105)
-        plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=10, color='#1e293b')
-        plt.ylabel("Score Percentage (%)", fontsize=10, fontweight='bold', labelpad=10, color='#1e293b')
-        plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0., frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
-        plt.xticks(rotation=15, fontweight='bold', ha='right', color='#1e293b')
-        plt.yticks(color='#475569')
-        plt.grid(axis='y', linestyle='--', alpha=0.6, color='#cbd5e1')
-        
-        for spine in ['top', 'right', 'left', 'bottom']:
-            ax_comp.spines[spine].set_color('#cbd5e1')
-
-        plt.tight_layout()
-        st.pyplot(fig_comp)
+        st.altair_chart(chart, use_container_width=True)
 
     # --------------------------------------------------------------------------
     # Scenario B: Target Column Missing -> Batch Prediction View
