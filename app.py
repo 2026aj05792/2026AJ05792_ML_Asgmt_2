@@ -345,15 +345,24 @@ if uploaded_file is not None:
         st.markdown("---")
         
         # ----------------------------------------------------------------------
-        # Model Comparison Vertical Bar Chart Section (LIGHT MODERN PALETTE)
+        # Model Comparison Vertical Bar Chart (FIXED OVERLAP & LIGHT PALETTE)
         # ----------------------------------------------------------------------
         st.subheader("📊 Classifier Comparison across Test Dataset (%)")
         
+        # Multi-line names to eliminate text collisions on X-axis
+        model_display_names = {
+            "Logistic Regression": "Logistic\nRegression",
+            "Decision Tree Classifier": "Decision Tree\nClassifier",
+            "K-Nearest Neighbor Classifier": "K-Nearest\nNeighbor",
+            "Naive Bayes Classifier - Gaussian": "Naive Bayes\n(Gaussian)",
+            "Support Vector Machine": "Support Vector\nMachine"
+        }
+
         comparison_records = []
         for name, m_obj in models.items():
             p_pred, p_proba = run_model_inference(name, m_obj, X_test, scaler)
             comparison_records.append({
-                "Model": name,
+                "Model": model_display_names.get(name, name),
                 "Accuracy (%)": accuracy_score(y_test, p_pred) * 100,
                 "Precision (%)": precision_score(y_test, p_pred, zero_division=0) * 100,
                 "Recall (%)": recall_score(y_test, p_pred, zero_division=0) * 100,
@@ -364,13 +373,11 @@ if uploaded_file is not None:
         comp_df = pd.DataFrame(comparison_records)
         comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Percentage (%)")
 
-        fig_comp, ax_comp = plt.subplots(figsize=(10.5, 4.6))
+        fig_comp, ax_comp = plt.subplots(figsize=(11, 4.8))
         fig_comp.patch.set_facecolor('#ffffff')
         ax_comp.set_facecolor('#ffffff')
 
-        # Modern light pastel/corporate color palette
-        # Accuracy: Soft Sky Blue (#38bdf8), Precision: Light Teal (#2dd4bf),
-        # Recall: Warm Amber (#f59e0b), F1 Score: Soft Indigo (#818cf8), AUC: Slate (#94a3b8)
+        # Executive light palette
         light_palette = ["#38bdf8", "#2dd4bf", "#f59e0b", "#818cf8", "#94a3b8"]
 
         sns.barplot(
@@ -383,10 +390,11 @@ if uploaded_file is not None:
         )
 
         plt.ylim(0, 105)
-        plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=10, color='#1e293b')
+        plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=12, color='#1e293b')
         plt.ylabel("Score Percentage (%)", fontsize=10, fontweight='bold', labelpad=10, color='#1e293b')
         plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0., frameon=True, facecolor='#ffffff', edgecolor='#e2e8f0')
-        plt.xticks(rotation=0, fontweight='bold', color='#1e293b', fontsize=9.5)
+        
+        plt.xticks(rotation=15, fontweight='bold', color='#1e293b', fontsize=8.5, ha='right')
         plt.yticks(color='#475569')
         plt.grid(axis='y', linestyle='--', alpha=0.5, color='#e2e8f0')
         
