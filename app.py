@@ -345,7 +345,7 @@ if uploaded_file is not None:
         st.markdown("---")
         
         # ----------------------------------------------------------------------
-        # Model Comparison Bar Chart Section
+        # Model Comparison Bar Chart Section (ENHANCED HIGH-CONTRAST PALETTE)
         # ----------------------------------------------------------------------
         st.subheader("📊 Classifier Comparison across Test Dataset (%)")
         
@@ -364,27 +364,37 @@ if uploaded_file is not None:
         comp_df = pd.DataFrame(comparison_records)
         comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Percentage (%)")
 
-        fig_comp, ax_comp = plt.subplots(figsize=(10, 4.5))
-        fig_comp.patch.set_facecolor('#f8f9fa')
-        ax_comp.set_facecolor('#f8f9fa')
+        fig_comp, ax_comp = plt.subplots(figsize=(10.5, 4.8))
+        fig_comp.patch.set_facecolor('#ffffff')
+        ax_comp.set_facecolor('#f8fafc')
 
-        custom_palette = ["#1e3a8a", "#0284c7", "#0d9488", "#e11d48", "#475569"]
+        # Executive color palette with distinct high-contrast hues
+        # Accuracy: Royal Navy (#1e40af), Precision: Sky Blue (#0284c7),
+        # Recall: Emerald Green (#10b981), F1: Warm Amber (#f59e0b), AUC: Slate (#334155)
+        vibrant_palette = ["#1e40af", "#0284c7", "#10b981", "#f59e0b", "#334155"]
 
         sns.barplot(
             data=comp_melted, 
             x="Model", 
             y="Percentage (%)", 
             hue="Metric", 
-            palette=custom_palette,
+            palette=vibrant_palette,
+            edgecolor="#ffffff",
+            linewidth=1,
             ax=ax_comp
         )
 
         plt.ylim(0, 105)
-        plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=8)
-        plt.ylabel("Score Percentage (%)", fontsize=10, fontweight='bold', labelpad=8)
-        plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0., frameon=True)
-        plt.xticks(rotation=20, fontweight='bold', ha='right')
-        plt.grid(axis='y', linestyle='--', alpha=0.5)
+        plt.xlabel("Classifier Model", fontsize=10, fontweight='bold', labelpad=10, color='#1e293b')
+        plt.ylabel("Score Percentage (%)", fontsize=10, fontweight='bold', labelpad=10, color='#1e293b')
+        plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0., frameon=True, facecolor='#ffffff', edgecolor='#cbd5e1')
+        plt.xticks(rotation=15, fontweight='bold', ha='right', color='#1e293b')
+        plt.yticks(color='#475569')
+        plt.grid(axis='y', linestyle='--', alpha=0.6, color='#cbd5e1')
+        
+        for spine in ['top', 'right', 'left', 'bottom']:
+            ax_comp.spines[spine].set_color('#cbd5e1')
+
         plt.tight_layout()
         st.pyplot(fig_comp)
 
