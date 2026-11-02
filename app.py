@@ -345,7 +345,7 @@ if uploaded_file is not None:
         st.markdown("---")
         
         # ----------------------------------------------------------------------
-        # Model Comparison Vertical Bar Chart (FIXED OVERLAP & LIGHT PALETTE)
+        # Model Comparison Vertical Bar Chart (INCLUDES ALL 6 RUBRIC METRICS)
         # ----------------------------------------------------------------------
         st.subheader("📊 Classifier Comparison across Test Dataset (%)")
         
@@ -367,18 +367,22 @@ if uploaded_file is not None:
                 "Precision (%)": precision_score(y_test, p_pred, zero_division=0) * 100,
                 "Recall (%)": recall_score(y_test, p_pred, zero_division=0) * 100,
                 "F1 Score (%)": f1_score(y_test, p_pred, zero_division=0) * 100,
-                "AUC (%)": roc_auc_score(y_test, p_proba) * 100
+                "AUC (%)": roc_auc_score(y_test, p_proba) * 100,
+                "MCC (%)": matthews_corrcoef(y_test, p_pred) * 100
             })
             
         comp_df = pd.DataFrame(comparison_records)
         comp_melted = comp_df.melt(id_vars="Model", var_name="Metric", value_name="Percentage (%)")
 
-        fig_comp, ax_comp = plt.subplots(figsize=(11, 4.8))
+        fig_comp, ax_comp = plt.subplots(figsize=(11.5, 4.8))
         fig_comp.patch.set_facecolor('#ffffff')
         ax_comp.set_facecolor('#ffffff')
 
-        # Executive light palette
-        light_palette = ["#38bdf8", "#2dd4bf", "#f59e0b", "#818cf8", "#94a3b8"]
+        # 6-color executive light palette
+        # Accuracy: Sky Blue (#38bdf8), Precision: Light Teal (#2dd4bf),
+        # Recall: Warm Amber (#f59e0b), F1 Score: Soft Indigo (#818cf8),
+        # AUC: Slate Gray (#94a3b8), MCC: Rose Pink (#f43f5e)
+        light_palette = ["#38bdf8", "#2dd4bf", "#f59e0b", "#818cf8", "#94a3b8", "#f43f5e"]
 
         sns.barplot(
             data=comp_melted, 
