@@ -17,8 +17,7 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     matthews_corrcoef,
-    confusion_matrix,
-    classification_report
+    confusion_matrix
 )
 
 # ------------------------------------------------------------------------------
@@ -320,27 +319,11 @@ if uploaded_file is not None:
             st.pyplot(fig)
 
         with col_right:
-            st.markdown("##### 📋 Class Breakdown (% Rates)")
+            st.markdown("##### 📋 Class Breakdown & Business Impact")
             
-            st.info(f"🎯 **Churn Detection Rate:** **{pct_churners_caught:.2f}%** ({total_churners_caught} / {total_actual_churners} actual churners caught)")
-            st.warning(f"⚠️ **Missed Churners (FNR):** **{fnr*100:.2f}%** | **False Alarm Rate (FPR):** **{fpr*100:.2f}%**")
-
-            # Clean percentage breakdown table
-            report_dict = classification_report(
-                y_test, y_pred, 
-                target_names=["Retained (0)", "Churned (1)"], 
-                output_dict=True
-            )
-            
-            pct_table_data = {
-                "Class Name": ["Retained (0)", "Churned (1)"],
-                "Precision Rate (%)": [f"{report_dict['Retained (0)']['precision']*100:.2f}%", f"{report_dict['Churned (1)']['precision']*100:.2f}%"],
-                "Recall Rate (%)": [f"{report_dict['Retained (0)']['recall']*100:.2f}%", f"{report_dict['Churned (1)']['recall']*100:.2f}%"],
-                "F1 Score (%)": [f"{report_dict['Retained (0)']['f1-score']*100:.2f}%", f"{report_dict['Churned (1)']['f1-score']*100:.2f}%"],
-                "Sample Count": [int(report_dict['Retained (0)']['support']), int(report_dict['Churned (1)']['support'])]
-            }
-            pct_df = pd.DataFrame(pct_table_data)
-            st.dataframe(pct_df, use_container_width=True, hide_index=True)
+            st.info(f"🎯 **Churn Detection Rate (Recall):** **{pct_churners_caught:.2f}%**\n\nCorrectly identified **{total_churners_caught}** out of **{total_actual_churners}** actual churners.")
+            st.warning(f"⚠️ **Missed Churners (FNR):** **{fnr*100:.2f}%** ({fn} lost customers)\n\n🔔 **False Alarm Rate (FPR):** **{fpr*100:.2f}%** ({fp} false alarms)")
+            st.success(f"🛡️ **Specificity (Retained Recall):** **{specificity*100:.2f}%**\n\nCorrectly identified **{tn}** out of **{tn+fp}** retained customers.")
 
         st.markdown("---")
         
@@ -379,9 +362,6 @@ if uploaded_file is not None:
         ax_comp.set_facecolor('#ffffff')
 
         # 6-color executive light palette
-        # Accuracy: Sky Blue (#38bdf8), Precision: Light Teal (#2dd4bf),
-        # Recall: Warm Amber (#f59e0b), F1 Score: Soft Indigo (#818cf8),
-        # AUC: Slate Gray (#94a3b8), MCC: Rose Pink (#f43f5e)
         light_palette = ["#38bdf8", "#2dd4bf", "#f59e0b", "#818cf8", "#94a3b8", "#f43f5e"]
 
         sns.barplot(
