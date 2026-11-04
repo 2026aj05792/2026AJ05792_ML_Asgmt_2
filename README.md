@@ -35,7 +35,7 @@ The 5 classic classifiers were evaluated on the exact same test dataset (`1,409`
 | **Decision Tree Classifier** | 0.6941 | 0.8271 | 0.4583 | 0.8369 | 0.5922 | 0.4236 | 
 | **K-Nearest Neighbor Classifier** | 0.7672 | 0.7909 | 0.5665 | 0.5241 | 0.5444 | 0.3890 | 
 | **Naive Bayes Classifier - Gaussian** | 0.6537 | 0.8202 | 0.4254 | 0.8690 | 0.5712 | 0.3943 | 
-| **Support Vector Machine** | 0.7715 | 0.8262 | 0.5580 | 0.6684 | 0.6083 | 0.4524 | 
+| **Support Vector Machine** | 0.7715 | 0.8263 | 0.5580 | 0.6684 | 0.6083 | 0.4524 | 
 
 ### 2. Performance Observations per Model
 
@@ -45,5 +45,5 @@ The 5 classic classifiers were evaluated on the exact same test dataset (`1,409`
 | **Decision Tree Classifier** | Performs strongly on Recall (83.69%) and AUC (0.8271) due to class weighting, but shows lower Precision (45.83%) and overall Accuracy (69.41%) compared to linear and ensemble models. | 
 | **K-Nearest Neighbor Classifier** | Yields high overall Accuracy (76.72%) and decent Precision (56.65%), but struggles with Recall (52.41%) on high-dimensional feature spaces, missing roughly half of all actual churners. | 
 | **Naive Bayes Classifier - Gaussian** | Achieves the highest overall Recall (86.90%) by flagging almost all potential churners. However, its strict independence assumption results in a high False Positive Rate, lowering its overall Accuracy to 65.37% and Precision to 42.54%. | 
-| **Support Vector Machine** | Achieves the highest overall Accuracy (77.15%) while maintaining strong balanced metrics across AUC (0.8262), Precision (55.80%), Recall (66.84%), and F1 Score (0.6083), making it a competitive non-linear option. | 
+| **Support Vector Machine** | Achieves the highest overall Accuracy (77.15%) while maintaining strong balanced metrics across AUC (0.8263), Precision (55.80%), Recall (66.84%), and F1 Score (0.6083), making it a competitive non-linear option. | 
 | **Overall, Winner for the dataset** | **Logistic Regression** is the overall winner. It achieves the highest AUC Score (0.8486), highest F1 Score (0.6152), and highest MCC (0.4583) on unseen test data, providing the optimal business balance between capturing high-risk churners and avoiding unnecessary retention costs. |
