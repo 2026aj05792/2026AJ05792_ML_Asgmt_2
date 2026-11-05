@@ -7,7 +7,7 @@ Customer churn poses a significant challenge for telecommunication companies, di
 ## b. Dataset Description
 
 - **Source & Provenance:** The dataset is sourced from the standard **IBM Sample Data Sets** (commonly hosted and benchmarked on **Kaggle** under *Telco Customer Churn*).
-- **Original Dataset Size:** The full dataset contains **7,043 customer records** with **21 feature columns**.
+- **Original Dataset Size:** The full dataset contains **7,043 customer records** with **21 columns (20 input features + 1 target column: Churn)**.
 - **Evaluation Test Subset (`test_data.csv`):** A held-out evaluation test set of **1,409 customer records** (80/20 split of the original dataset) was used for model validation.
   * **Target Variable:** `Churn` (`0` = Retained, `1` = Churned).
   * **Class Breakdown:** 1,035 Retained customers (73.46%) and 374 Churned customers (26.54%).
@@ -41,7 +41,7 @@ The 5 classic classifiers were evaluated on the exact same test dataset (`1,409`
 
 | ML Model Name | Observation about model performance | 
 | ----- | ----- | 
-| **Logistic Regression** | Demonstrates the highest overall capability in probability calibration and ranking, achieving the top AUC Score (0.8486), highest F1 Score (0.6152), and highest MCC (0.4583). By incorporating class balancing at the 0.45 threshold, it effectively captures 83.16% of churners while maintaining strong predictive balance. | 
+| **Logistic Regression** | Demonstrates the strongest overall ranking and classification performance, achieving the highest AUC Score (0.8486), highest F1 Score (0.6152), and highest MCC (0.4583). By incorporating class balancing at the 0.45 threshold, it effectively captures 83.16% of churners while maintaining strong predictive balance. | 
 | **Decision Tree Classifier** | Performs strongly on Recall (83.69%) and AUC (0.8271) due to class weighting, but shows lower Precision (45.83%) and overall Accuracy (69.41%) compared to linear and ensemble models. | 
 | **K-Nearest Neighbor Classifier** | Yields high overall Accuracy (76.72%) and decent Precision (56.65%), but struggles with Recall (52.41%) on high-dimensional feature spaces, missing roughly half of all actual churners. | 
 | **Naive Bayes Classifier - Gaussian** | Achieves the highest overall Recall (86.90%) by flagging almost all potential churners. However, its strict independence assumption results in a high False Positive Rate, lowering its overall Accuracy to 65.37% and Precision to 42.54%. | 
